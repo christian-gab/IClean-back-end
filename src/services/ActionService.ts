@@ -48,7 +48,6 @@ export class ActionService {
 
     const currentProgress = await this.progressRepo.getProgress(userId)
 
-    // Deduplication check
     if (currentProgress.sessionCompletedActions.includes(actionId)) {
       throw new AppError('Esta ação já foi registrada nesta sessão.', 400)
     }
@@ -67,7 +66,6 @@ export class ActionService {
 
     let progress = await this.progressRepo.recordCompletedAction(userId, completedAction)
 
-    // Check achievement unlock
     const newAchievements: string[] = []
     if (progress.actionsCompleted >= 1 && !progress.unlockedAchievements.includes('ach-first-action')) {
       newAchievements.push('ach-first-action')

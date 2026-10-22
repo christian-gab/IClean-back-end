@@ -10,6 +10,12 @@ export class InMemoryUserRepository implements IUserRepository {
     return user ? { ...user } : null
   }
 
+  async findByEmail(email: string): Promise<User | null> {
+    const clean = email.trim().toLowerCase()
+    const user = this.users.find(u => u.email?.toLowerCase() === clean)
+    return user ? { ...user } : null
+  }
+
   async findByUsername(username: string): Promise<User | null> {
     const clean = username.trim().toLowerCase()
     const user = this.users.find(u => u.username.toLowerCase() === clean)
@@ -21,6 +27,8 @@ export class InMemoryUserRepository implements IUserRepository {
       id: data.id || `user-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       name: data.name,
       username: data.username,
+      email: data.email || '',
+      password: data.password,
       bio: data.bio,
       avatarUrl: data.avatarUrl,
       joinedAt: data.joinedAt || new Date().toISOString(),

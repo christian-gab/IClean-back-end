@@ -1,5 +1,30 @@
-node_modules/
-dist/
+# Dependencies and build output
+/node_modules/
+/dist/
+/coverage/
+
+# Local environment and credentials
 .env
+.env.*
+!.env.example
+!.env.*.example
+.npmrc
+!.npmrc.example
+*.local
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Logs, caches, and local data
 *.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+.cache/
 .DS_Store
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+*.bak

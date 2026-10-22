@@ -1,8 +1,14 @@
 import { z } from 'zod'
 
 export const loginSchema = z.object({
-  name: z.string().trim().min(1, 'O nome é obrigatório'),
-  username: z.string().trim().min(1, 'O nome de usuário é obrigatório'),
+  email: z.string().trim().email('E-mail inválido'),
+  password: z.string().min(6, 'A senha deve ter no mínimo 6 caracteres'),
+})
+
+export const registerSchema = z.object({
+  name: z.string().trim().min(2, 'O nome deve ter no mínimo 2 caracteres'),
+  email: z.string().trim().email('E-mail inválido'),
+  password: z.string().min(6, 'A senha deve ter no mínimo 6 caracteres'),
 })
 
 export const updateProfileSchema = z.object({
@@ -29,6 +35,7 @@ export const completeActionSchema = z.object({
 })
 
 export type LoginInput = z.infer<typeof loginSchema>
+export type RegisterInput = z.infer<typeof registerSchema>
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>
 export type CreatePostInput = z.infer<typeof createPostSchema>
 export type CreateCommentInput = z.infer<typeof createCommentSchema>

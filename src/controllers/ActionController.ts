@@ -1,5 +1,7 @@
 import { Request, Response, NextFunction } from 'express'
 import { actionService } from '../services/ActionService.js'
+import { getAuthenticatedUserId } from '../utils/auth.js'
+import { AppError } from '../errors/AppError.js'
 
 export class ActionController {
   async listActions(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -34,7 +36,10 @@ export class ActionController {
   async completeAction(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const id = String(req.params.id)
-      const currentUserId = (req.headers['x-user-id'] as string) || 'user-1'
+      const currentUserId = getAuthenticatedUserId(req)
+      if (!currentUserId) {
+        throw new AppError('Não autenticado', 401)
+      }
       const result = await actionService.completeAction(currentUserId, id, req.body)
 
       res.status(200).json({

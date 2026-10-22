@@ -2,6 +2,7 @@ import { User, Post, Comment, SustainableAction, UserProgress, Level, Achievemen
 
 export interface IUserRepository {
   findById(id: string): Promise<User | null>
+  findByEmail(email: string): Promise<User | null>
   findByUsername(username: string): Promise<User | null>
   create(user: Omit<User, 'id' | 'joinedAt'> & { id?: string; joinedAt?: string }): Promise<User>
   update(id: string, updates: Partial<Omit<User, 'id' | 'joinedAt'>>): Promise<User | null>

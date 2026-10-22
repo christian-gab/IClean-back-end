@@ -46,10 +46,8 @@ export class PostService {
       imageUrl: data.imageUrl,
     })
 
-    // Track user progress
     const progress = await this.progressRepo.incrementPostsCreated(userId)
 
-    // Check achievement unlock
     const newAchievements: string[] = []
     if (progress.postsCreated >= 1 && !progress.unlockedAchievements.includes('ach-first-post')) {
       newAchievements.push('ach-first-post')

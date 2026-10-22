@@ -1,10 +1,11 @@
 import { Request, Response, NextFunction } from 'express'
 import { progressService } from '../services/ProgressService.js'
+import { getAuthenticatedUserId } from '../utils/auth.js'
 
 export class ProgressController {
   async getProgress(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const userId = (req.params.userId as string) || (req.headers['x-user-id'] as string) || 'user-1'
+      const userId = (req.params.userId as string) || getAuthenticatedUserId(req) || 'user-1'
       const progress = await progressService.getUserProgress(userId)
 
       res.status(200).json({
@@ -31,7 +32,7 @@ export class ProgressController {
 
   async getAchievements(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const userId = (req.query.userId as string) || (req.headers['x-user-id'] as string) || 'user-1'
+      const userId = (req.query.userId as string) || (req.params.userId as string) || getAuthenticatedUserId(req) || 'user-1'
       const achievements = await progressService.getAchievements(userId)
 
       res.status(200).json({
@@ -46,7 +47,7 @@ export class ProgressController {
 
   async resetProgress(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const userId = (req.headers['x-user-id'] as string) || 'user-1'
+      const userId = getAuthenticatedUserId(req) || (req.params.userId as string) || 'user-1'
       const progress = await progressService.resetProgress(userId)
 
       res.status(200).json({

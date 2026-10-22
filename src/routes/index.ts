@@ -8,14 +8,12 @@ import { progressController } from '../controllers/ProgressController.js'
 
 const router = Router()
 
-// Sub-routers
 router.use('/auth', authRoutes)
 router.use('/users', userRoutes)
 router.use('/posts', postRoutes)
 router.use('/actions', actionRoutes)
 router.use('/progress', progressRoutes)
 
-// Convenient direct endpoints for frontend matching mocks
 router.get('/levels', progressController.getLevels.bind(progressController))
 router.get('/achievements', progressController.getAchievements.bind(progressController))
 
