@@ -140,13 +140,15 @@ INSERT INTO `sustainable_actions` (`id`, `title`, `description`, `category`, `po
 ('action-1', 'Separar materiais reciclaveis', 'Separe plastico, papel, vidro e metal do lixo organico para facilitar a reciclagem.', 'recycling', 20, 'Recycle'),
 ('action-2', 'Usar garrafa reutilizavel', 'Utilize uma garrafa de agua reutilizavel no lugar de garrafa PET descartavel.', 'plastic', 15, 'GlassWater'),
 ('action-3', 'Recusar sacolas plasticas', 'Leve sua propria sacola reutilizavel para as compras e recuse sacolas plasticas.', 'plastic', 10, 'ShoppingBag'),
-('action-4', 'Reduzir tempo no banho', 'Reduza o tempo do banho para menos de 5 minutos e economize agua.', 'water', 25, 'Droplets'),
 ('action-5', 'Fechar a torneira ao escovar dentes', 'Feche a torneira enquanto escova os dentes, economizando ate 12 litros de agua.', 'water', 10, 'Droplet'),
 ('action-6', 'Reutilizar materiais', 'Reutilize embalagens, papeis e outros materiais antes de descarta-los.', 'recycling', 15, 'RefreshCcw'),
 ('action-7', 'Comprar produtos locais', 'Prefira produtos de produtores locais para reduzir o impacto do transporte.', 'consumption', 20, 'MapPin'),
 ('action-8', 'Plantar uma muda ou arbusto', 'Contribua para o verde urbano plantando uma muda ou arbusto na sua regiao.', 'preservation', 50, 'Sprout'),
 ('action-9', 'Usar transporte coletivo ou bicicleta', 'Substitua o carro por onibus, metro ou bicicleta em um de seus trajetos do dia.', 'consumption', 30, 'Bike'),
-('action-10', 'Compostar residuos organicos', 'Inicie uma composteira em casa para transformar residuos organicos em adubo.', 'recycling', 40, 'Leaf');
+('action-10', 'Compostar residuos organicos', 'Inicie uma composteira em casa para transformar residuos organicos em adubo.', 'recycling', 40, 'Leaf'),
+('action-11', 'Coleta de lixo em espaco publico', 'Recolha lixo descartado em parques, calcadas ou praias e deposite no lugar correto.', 'preservation', 35, 'Trash2'),
+('action-12', 'Descartar pilhas e eletronicos corretamente', 'Leve pilhas, baterias ou eletronicos usados a um ponto de coleta especializado.', 'recycling', 25, 'BatteryLow'),
+('action-13', 'Preparar refeicao sem desperdicio', 'Aproveite cascas, talos e sobras para preparar uma refeicao completa sem jogar nada fora.', 'consumption', 20, 'Utensils');
 
 INSERT INTO `users` (`id`, `name`, `username`, `bio`, `avatar_url`, `created_at`) VALUES
 ('user-1', 'Ana Oliveira', '@ana.eco', 'Apaixonada por natureza e sustentabilidade. Acredito que pequenas acoes fazem grande diferenca.', 'https://api.dicebear.com/9.x/avataaars/svg?seed=Ana&backgroundColor=b6e3f4', '2024-03-15 10:00:00'),

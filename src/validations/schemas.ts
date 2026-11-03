@@ -34,9 +34,15 @@ export const completeActionSchema = z.object({
   description: z.string().max(500, 'Descrição não pode exceder 500 caracteres').optional(),
 })
 
+export const validatePhotoSchema = z.object({
+  photoUrl: z.string().min(1, 'A foto é obrigatória'),
+  description: z.string().max(500, 'Descrição não pode exceder 500 caracteres').optional(),
+})
+
 export type LoginInput = z.infer<typeof loginSchema>
 export type RegisterInput = z.infer<typeof registerSchema>
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>
 export type CreatePostInput = z.infer<typeof createPostSchema>
 export type CreateCommentInput = z.infer<typeof createCommentSchema>
 export type CompleteActionInput = z.infer<typeof completeActionSchema>
+export type ValidatePhotoInput = z.infer<typeof validatePhotoSchema>

@@ -153,14 +153,6 @@ export const sustainableActions: SustainableAction[] = [
     icon: 'ShoppingBag',
   },
   {
-    id: 'action-4',
-    title: 'Reduzir tempo no banho',
-    description: 'Reduza o tempo do banho para menos de 5 minutos e economize agua.',
-    category: 'water',
-    points: 25,
-    icon: 'Droplets',
-  },
-  {
     id: 'action-5',
     title: 'Fechar a torneira ao escovar dentes',
     description: 'Feche a torneira enquanto escova os dentes, economizando ate 12 litros de agua.',
@@ -207,6 +199,30 @@ export const sustainableActions: SustainableAction[] = [
     category: 'recycling',
     points: 40,
     icon: 'Leaf',
+  },
+  {
+    id: 'action-11',
+    title: 'Coleta de lixo em espaco publico',
+    description: 'Recolha lixo descartado em parques, calcadas ou praias e deposite no lugar correto.',
+    category: 'preservation',
+    points: 35,
+    icon: 'Trash2',
+  },
+  {
+    id: 'action-12',
+    title: 'Descartar pilhas e eletronicos corretamente',
+    description: 'Leve pilhas, baterias ou eletronicos usados a um ponto de coleta especializado.',
+    category: 'recycling',
+    points: 25,
+    icon: 'BatteryLow',
+  },
+  {
+    id: 'action-13',
+    title: 'Preparar refeicao sem desperdicio',
+    description: 'Aproveite cascas, talos e sobras para preparar uma refeicao completa sem jogar nada fora.',
+    category: 'consumption',
+    points: 20,
+    icon: 'Utensils',
   },
 ]
 

@@ -23,6 +23,10 @@ export function createApp(): Express {
   app.use((req: Request, _res: Response, next: NextFunction) => {
     const timestamp = new Date().toISOString()
     console.log(`[${timestamp}] ${req.method} ${req.originalUrl}`)
+    // Timeout maior para rotas de IA (Gemini pode demorar até 60 s)
+    if (req.path.includes('validate-photo')) {
+      req.setTimeout(90_000)
+    }
     next()
   })
 
