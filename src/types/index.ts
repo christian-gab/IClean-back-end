@@ -11,10 +11,15 @@ export interface User {
   name: string
   username: string
   email: string
-  password?: string
   bio: string
   avatarUrl: string
   joinedAt: string
+}
+
+export type PublicUser = Omit<User, 'email'>
+
+export interface StoredUser extends User {
+  passwordHash: string | null
 }
 
 export interface Comment {

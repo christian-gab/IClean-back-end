@@ -65,6 +65,13 @@ export class InMemoryProgressRepository implements IProgressRepository {
     }
   }
 
+  async getAllProgressTotals(): Promise<Array<{ userId: string; totalPoints: number }>> {
+    return [...this.userProgressMap].map(([userId, progress]) => ({
+      userId,
+      totalPoints: progress.totalPoints,
+    }))
+  }
+
   async recordCompletedAction(userId: string, action: CompletedAction): Promise<UserProgress> {
     const raw = this.getOrCreateRawProgress(userId)
     raw.totalPoints += action.points

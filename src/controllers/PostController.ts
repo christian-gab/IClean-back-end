@@ -7,7 +7,7 @@ export class PostController {
   async listPosts(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const category = req.query.category as string | undefined
-      const currentUserId = getAuthenticatedUserId(req) || 'user-1'
+      const currentUserId = getAuthenticatedUserId(req)
       const posts = await postService.listPosts(category, currentUserId)
 
       res.status(200).json({
@@ -23,7 +23,7 @@ export class PostController {
   async getPost(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const id = String(req.params.id)
-      const currentUserId = getAuthenticatedUserId(req) || 'user-1'
+      const currentUserId = getAuthenticatedUserId(req)
       const post = await postService.getPostById(id, currentUserId)
 
       res.status(200).json({
@@ -37,7 +37,7 @@ export class PostController {
 
   async createPost(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const currentUserId = getAuthenticatedUserId(req) || (req.body.authorId as string)
+      const currentUserId = getAuthenticatedUserId(req)
       if (!currentUserId) {
         throw new AppError('Não autenticado', 401)
       }

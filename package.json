@@ -8,7 +8,8 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "test": "tsx src/test-api.ts"
+    "db:migrate": "node dist/data/migrate-cli.js",
+    "test": "node --import tsx --import ./src/config/test-env.ts --test src/auth.test.ts src/photo-validation.test.ts src/middlewares/errorHandler.test.ts src/config/environment.test.ts src/config/database.test.ts src/repositories/mysql/MySqlUserRepository.test.ts src/repositories/mysql/MySqlRepositories.integration.test.ts src/mysql-api.integration.test.ts && node --import tsx --import ./src/config/test-env.ts src/test-api.ts"
   },
   "keywords": [
     "nodejs",
@@ -24,7 +25,8 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
-    "zod": "^3.24.2"
+    "mysql2": "^3.24.6",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",

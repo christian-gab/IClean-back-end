@@ -1,14 +1,14 @@
 import { Request, Response, NextFunction } from 'express'
-import { AnyZodObject, ZodError } from 'zod'
+import { ZodError, type ZodType } from 'zod'
 
-export function validate(schema: AnyZodObject) {
+export function validate(schema: ZodType) {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       req.body = await schema.parseAsync(req.body)
       next()
     } catch (error) {
       if (error instanceof ZodError) {
-        const errors = error.errors.map(err => ({
+        const errors = error.issues.map(err => ({
           field: err.path.join('.'),
           message: err.message,
         }))

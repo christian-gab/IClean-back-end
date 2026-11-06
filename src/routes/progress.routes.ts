@@ -3,6 +3,7 @@ import { progressController } from '../controllers/ProgressController.js'
 
 const router = Router()
 
+router.get('/leaderboard', progressController.getLeaderboard.bind(progressController))
 router.get('/', progressController.getProgress.bind(progressController))
 router.get('/user/:userId', progressController.getProgress.bind(progressController))
 router.get('/levels', progressController.getLevels.bind(progressController))

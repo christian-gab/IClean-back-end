@@ -1,34 +1,46 @@
-import { User } from '../../types/index.js'
+import { User, StoredUser } from '../../types/index.js'
 import { IUserRepository } from '../interfaces.js'
 import { initialUsers } from '../../data/seed.js'
+import { AppError } from '../../errors/AppError.js'
+import { randomUUID } from 'node:crypto'
 
 export class InMemoryUserRepository implements IUserRepository {
-  private users: User[] = [...initialUsers]
+  private users: StoredUser[] = [...initialUsers]
 
-  async findById(id: string): Promise<User | null> {
+  async findById(id: string): Promise<StoredUser | null> {
     const user = this.users.find(u => u.id === id)
     return user ? { ...user } : null
   }
 
-  async findByEmail(email: string): Promise<User | null> {
+  async findByEmail(email: string): Promise<StoredUser | null> {
     const clean = email.trim().toLowerCase()
     const user = this.users.find(u => u.email?.toLowerCase() === clean)
     return user ? { ...user } : null
   }
 
-  async findByUsername(username: string): Promise<User | null> {
+  async findByUsername(username: string): Promise<StoredUser | null> {
     const clean = username.trim().toLowerCase()
     const user = this.users.find(u => u.username.toLowerCase() === clean)
     return user ? { ...user } : null
   }
 
-  async create(data: Omit<User, 'id' | 'joinedAt'> & { id?: string; joinedAt?: string }): Promise<User> {
-    const newUser: User = {
-      id: data.id || `user-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+  async create(data: Omit<StoredUser, 'id' | 'joinedAt' | 'passwordHash'> & { passwordHash: string; id?: string; joinedAt?: string }): Promise<StoredUser> {
+    const email = data.email.trim().toLowerCase()
+    if (this.users.some(user => user.email.trim().toLowerCase() === email)) {
+      throw new AppError('Este e-mail já está cadastrado', 409)
+    }
+
+    const username = data.username.trim()
+    if (this.users.some(user => user.username.trim().toLowerCase() === username.toLowerCase())) {
+      throw new AppError('Este nome de usuário já está cadastrado', 409)
+    }
+
+    const newUser: StoredUser = {
+      id: data.id || randomUUID(),
       name: data.name,
-      username: data.username,
-      email: data.email || '',
-      password: data.password,
+      username,
+      email,
+      passwordHash: data.passwordHash,
       bio: data.bio,
       avatarUrl: data.avatarUrl,
       joinedAt: data.joinedAt || new Date().toISOString(),
@@ -37,7 +49,7 @@ export class InMemoryUserRepository implements IUserRepository {
     return { ...newUser }
   }
 
-  async update(id: string, updates: Partial<Omit<User, 'id' | 'joinedAt'>>): Promise<User | null> {
+  async update(id: string, updates: Partial<Omit<User, 'id' | 'joinedAt'>>): Promise<StoredUser | null> {
     const index = this.users.findIndex(u => u.id === id)
     if (index === -1) return null
 
@@ -48,7 +60,7 @@ export class InMemoryUserRepository implements IUserRepository {
     return { ...this.users[index] }
   }
 
-  async findAll(): Promise<User[]> {
+  async findAll(): Promise<StoredUser[]> {
     return this.users.map(u => ({ ...u }))
   }
 }

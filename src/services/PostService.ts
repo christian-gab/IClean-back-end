@@ -1,41 +1,42 @@
 import { IPostRepository, IUserRepository, IProgressRepository } from '../repositories/interfaces.js'
-import { inMemoryPostRepository } from '../repositories/inMemory/InMemoryPostRepository.js'
-import { inMemoryUserRepository } from '../repositories/inMemory/InMemoryUserRepository.js'
-import { inMemoryProgressRepository } from '../repositories/inMemory/InMemoryProgressRepository.js'
+import { postRepository, progressRepository, userRepository } from '../repositories/index.js'
 import { Post, Comment } from '../types/index.js'
 import { AppError } from '../errors/AppError.js'
 import { CreatePostInput } from '../validations/schemas.js'
 
 export class PostService {
   constructor(
-    private postRepo: IPostRepository = inMemoryPostRepository,
-    private userRepo: IUserRepository = inMemoryUserRepository,
-    private progressRepo: IProgressRepository = inMemoryProgressRepository
+    private postRepo: IPostRepository = postRepository,
+    private userRepo: IUserRepository = userRepository,
+    private progressRepo: IProgressRepository = progressRepository
   ) {}
 
-  async listPosts(category?: string, currentUserId = 'user-1'): Promise<Post[]> {
+  async listPosts(category?: string, currentUserId?: string): Promise<Post[]> {
     const posts = await this.postRepo.findAll(category)
     return posts.map(post => ({
       ...post,
-      likedByMe: post.likedByUsers ? post.likedByUsers.includes(currentUserId) : post.likedByMe,
+      likedByMe: Boolean(currentUserId && post.likedByUsers?.includes(currentUserId)),
     }))
   }
 
-  async getPostById(id: string, currentUserId = 'user-1'): Promise<Post> {
+  async getPostById(id: string, currentUserId?: string): Promise<Post> {
     const post = await this.postRepo.findById(id)
     if (!post) {
       throw new AppError('Publicação não encontrada', 404)
     }
     return {
       ...post,
-      likedByMe: post.likedByUsers ? post.likedByUsers.includes(currentUserId) : post.likedByMe,
+      likedByMe: Boolean(currentUserId && post.likedByUsers?.includes(currentUserId)),
     }
   }
 
   async createPost(userId: string, data: CreatePostInput): Promise<{ post: Post; unlockedAchievements: string[] }> {
     const user = await this.userRepo.findById(userId)
-    const authorName = user ? user.name : 'Usuário'
-    const authorAvatarUrl = user ? user.avatarUrl : 'https://api.dicebear.com/9.x/avataaars/svg?seed=default&backgroundColor=b6e3f4'
+    if (!user) {
+      throw new AppError('Usuário não encontrado', 404)
+    }
+    const authorName = user.name
+    const authorAvatarUrl = user.avatarUrl || 'https://api.dicebear.com/9.x/avataaars/svg?seed=default&backgroundColor=b6e3f4'
 
     const post = await this.postRepo.create({
       authorId: userId,
@@ -63,7 +64,7 @@ export class PostService {
     return { post, unlockedAchievements: newAchievements }
   }
 
-  async toggleLike(postId: string, userId = 'user-1'): Promise<{ postId: string; likes: number; likedByMe: boolean }> {
+  async toggleLike(postId: string, userId: string): Promise<{ postId: string; likes: number; likedByMe: boolean }> {
     const post = await this.postRepo.findById(postId)
     if (!post) {
       throw new AppError('Publicação não encontrada', 404)
@@ -84,8 +85,11 @@ export class PostService {
     }
 
     const user = await this.userRepo.findById(userId)
-    const authorName = user ? user.name : 'Usuário'
-    const authorAvatarUrl = user ? user.avatarUrl : 'https://api.dicebear.com/9.x/avataaars/svg?seed=default&backgroundColor=b6e3f4'
+    if (!user) {
+      throw new AppError('Usuário não encontrado', 404)
+    }
+    const authorName = user.name
+    const authorAvatarUrl = user.avatarUrl || 'https://api.dicebear.com/9.x/avataaars/svg?seed=default&backgroundColor=b6e3f4'
 
     const comment = await this.postRepo.addComment(postId, {
       authorId: userId,

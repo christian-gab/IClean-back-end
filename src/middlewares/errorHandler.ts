@@ -16,6 +16,15 @@ export function errorHandler(
     return
   }
 
+  if ('status' in err && (err.status === 429 || err.status === 503)) {
+    console.error('[UPSTREAM SERVICE UNAVAILABLE]', err)
+    res.status(503).json({
+      status: 'error',
+      message: 'O serviço de validação está temporariamente em alta demanda. Tente novamente em alguns instantes.',
+    })
+    return
+  }
+
   console.error('[UNEXPECTED ERROR]', err)
 
   res.status(500).json({

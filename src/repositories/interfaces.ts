@@ -1,12 +1,12 @@
-import { User, Post, Comment, SustainableAction, UserProgress, Level, Achievement, CompletedAction } from '../types/index.js'
+import { User, StoredUser, Post, Comment, SustainableAction, UserProgress, Level, Achievement, CompletedAction } from '../types/index.js'
 
 export interface IUserRepository {
-  findById(id: string): Promise<User | null>
-  findByEmail(email: string): Promise<User | null>
-  findByUsername(username: string): Promise<User | null>
-  create(user: Omit<User, 'id' | 'joinedAt'> & { id?: string; joinedAt?: string }): Promise<User>
-  update(id: string, updates: Partial<Omit<User, 'id' | 'joinedAt'>>): Promise<User | null>
-  findAll(): Promise<User[]>
+  findById(id: string): Promise<StoredUser | null>
+  findByEmail(email: string): Promise<StoredUser | null>
+  findByUsername(username: string): Promise<StoredUser | null>
+  create(user: Omit<StoredUser, 'id' | 'joinedAt' | 'passwordHash'> & { passwordHash: string; id?: string; joinedAt?: string }): Promise<StoredUser>
+  update(id: string, updates: Partial<Omit<User, 'id' | 'joinedAt'>>): Promise<StoredUser | null>
+  findAll(): Promise<StoredUser[]>
 }
 
 export interface IPostRepository {
@@ -26,6 +26,7 @@ export interface IActionRepository {
 
 export interface IProgressRepository {
   getProgress(userId: string): Promise<UserProgress>
+  getAllProgressTotals(): Promise<Array<{ userId: string; totalPoints: number }>>
   recordCompletedAction(userId: string, action: CompletedAction): Promise<UserProgress>
   incrementPostsCreated(userId: string): Promise<UserProgress>
   unlockAchievements(userId: string, achievementIds: string[]): Promise<UserProgress>

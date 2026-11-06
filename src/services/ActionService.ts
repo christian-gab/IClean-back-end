@@ -1,6 +1,5 @@
-import { IActionRepository, IProgressRepository } from '../repositories/interfaces.js'
-import { inMemoryActionRepository } from '../repositories/inMemory/InMemoryActionRepository.js'
-import { inMemoryProgressRepository } from '../repositories/inMemory/InMemoryProgressRepository.js'
+import { IActionRepository, IProgressRepository, IUserRepository } from '../repositories/interfaces.js'
+import { actionRepository, progressRepository, userRepository } from '../repositories/index.js'
 import { SustainableAction, CompletedAction, UserProgress } from '../types/index.js'
 import { AppError } from '../errors/AppError.js'
 import { CompleteActionInput } from '../validations/schemas.js'
@@ -20,8 +19,9 @@ export interface CompleteActionResult {
 
 export class ActionService {
   constructor(
-    private actionRepo: IActionRepository = inMemoryActionRepository,
-    private progressRepo: IProgressRepository = inMemoryProgressRepository
+    private actionRepo: IActionRepository = actionRepository,
+    private progressRepo: IProgressRepository = progressRepository,
+    private userRepo: IUserRepository = userRepository
   ) {}
 
   async listActions(category?: string): Promise<SustainableAction[]> {
@@ -41,6 +41,11 @@ export class ActionService {
     actionId: string,
     proofData?: CompleteActionInput
   ): Promise<CompleteActionResult> {
+    const user = await this.userRepo.findById(userId)
+    if (!user) {
+      throw new AppError('Usuário não encontrado', 404)
+    }
+
     const action = await this.actionRepo.findById(actionId)
     if (!action) {
       throw new AppError('Ação sustentável não encontrada', 404)

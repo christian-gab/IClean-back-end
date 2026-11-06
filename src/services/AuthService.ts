@@ -1,56 +1,63 @@
 import { IUserRepository, IPostRepository } from '../repositories/interfaces.js'
-import { inMemoryUserRepository } from '../repositories/inMemory/InMemoryUserRepository.js'
-import { inMemoryPostRepository } from '../repositories/inMemory/InMemoryPostRepository.js'
-import { User } from '../types/index.js'
+import { postRepository, userRepository } from '../repositories/index.js'
+import { PublicUser, StoredUser, User } from '../types/index.js'
 import { AppError } from '../errors/AppError.js'
 import { LoginInput, RegisterInput, UpdateProfileInput } from '../validations/schemas.js'
+import { createAuthToken } from '../utils/auth.js'
+import { hashPassword, verifyPassword } from '../utils/password.js'
 
 export class AuthService {
   constructor(
-    private userRepo: IUserRepository = inMemoryUserRepository,
-    private postRepo: IPostRepository = inMemoryPostRepository
+    private userRepo: IUserRepository = userRepository,
+    private postRepo: IPostRepository = postRepository
   ) {}
+
+  private sanitizeUser(user: StoredUser): User {
+    const { passwordHash: _passwordHash, ...safeUser } = user
+    return safeUser
+  }
 
   async login(data: LoginInput): Promise<{ user: User; token: string }> {
     const user = await this.userRepo.findByEmail(data.email.trim().toLowerCase())
-
-    if (!user) {
+    const passwordMatches = await verifyPassword(data.password, user?.passwordHash)
+    if (!user || !passwordMatches) {
       throw new AppError('E-mail ou senha incorretos', 401)
     }
 
-    if (user.password && user.password !== data.password) {
-      throw new AppError('E-mail ou senha incorretos', 401)
-    }
-
-    const token = `token-${Buffer.from(user.id).toString('base64')}-${Date.now()}`
-
-    const { password: _pw, ...safeUser } = user as User & { password?: string }
-    return { user: safeUser as User, token }
+    return { user: this.sanitizeUser(user), token: createAuthToken(user.id) }
   }
 
   async register(data: RegisterInput): Promise<{ user: User; token: string }> {
-    const existing = await this.userRepo.findByEmail(data.email.trim().toLowerCase())
+    const cleanEmail = data.email.trim().toLowerCase()
+    const existing = await this.userRepo.findByEmail(cleanEmail)
     if (existing) {
       throw new AppError('Este e-mail já está cadastrado', 409)
     }
 
     const avatarSeed = encodeURIComponent(data.name.trim())
-    const emailName = data.email.split('@')[0]
-    const usernameBase = `@${emailName.replace(/[^a-zA-Z0-9]/g, '.')}`
+    const emailName = cleanEmail.split('@')[0]
+    const usernameBase = emailName.replace(/[^a-zA-Z0-9]/g, '.').replace(/^\.+|\.+$/g, '') || 'user'
 
+    let counter = 0
+    let finalUsername: string
+    do {
+      const suffix = counter === 0 ? '' : String(counter)
+      finalUsername = `@${usernameBase.slice(0, 59 - suffix.length)}${suffix}`
+      counter += 1
+    } while (await this.userRepo.findByUsername(finalUsername))
+
+    const passwordHash = await hashPassword(data.password)
     const user = await this.userRepo.create({
       name: data.name.trim(),
-      username: usernameBase,
-      email: data.email.trim().toLowerCase(),
-      password: data.password,
+      username: finalUsername,
+      email: cleanEmail,
+      passwordHash,
       bio: 'Apaixonado(a) por natureza e sustentabilidade. Acredito que pequenas acoes fazem grande diferenca.',
       avatarUrl: `https://api.dicebear.com/9.x/avataaars/svg?seed=${avatarSeed}&backgroundColor=b6e3f4`,
       joinedAt: new Date().toISOString(),
     })
 
-    const token = `token-${Buffer.from(user.id).toString('base64')}-${Date.now()}`
-    const { password: _pw, ...safeUser } = user as User & { password?: string }
-    return { user: safeUser as User, token }
+    return { user: this.sanitizeUser(user), token: createAuthToken(user.id) }
   }
 
   async getUserById(id: string): Promise<User> {
@@ -58,7 +65,13 @@ export class AuthService {
     if (!user) {
       throw new AppError('Usuário não encontrado', 404)
     }
-    return user
+    return this.sanitizeUser(user)
+  }
+
+  async getPublicUserById(id: string): Promise<PublicUser> {
+    const user = await this.getUserById(id)
+    const { email: _email, ...publicUser } = user
+    return publicUser
   }
 
   async updateProfile(id: string, updates: UpdateProfileInput): Promise<User> {
@@ -80,7 +93,7 @@ export class AuthService {
       )
     }
 
-    return updatedUser
+    return this.sanitizeUser(updatedUser)
   }
 }
 

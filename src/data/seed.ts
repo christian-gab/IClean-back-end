@@ -1,12 +1,12 @@
-import { Post, SustainableAction, Level, Achievement, User } from '../types/index.js'
+import { Post, SustainableAction, Level, Achievement, StoredUser } from '../types/index.js'
 
-export const initialUsers: User[] = [
+export const initialUsers: StoredUser[] = [
   {
     id: 'user-1',
     name: 'Ana Oliveira',
     username: '@ana.eco',
-    email: 'ana@email.com',
-    password: '123456',
+    email: 'ana@seed.iclean.invalid',
+    passwordHash: null,
     bio: 'Apaixonada por natureza e sustentabilidade. Acredito que pequenas acoes fazem grande diferenca.',
     avatarUrl: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Ana&backgroundColor=b6e3f4',
     joinedAt: '2024-03-15T10:00:00.000Z',
@@ -15,8 +15,8 @@ export const initialUsers: User[] = [
     id: 'user-2',
     name: 'Carlos Mendes',
     username: '@carlos.verde',
-    email: 'carlos@email.com',
-    password: '123456',
+    email: 'carlos@seed.iclean.invalid',
+    passwordHash: null,
     bio: 'Praticante de compostagem e reciclador apaixonado.',
     avatarUrl: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Carlos&backgroundColor=c0aede',
     joinedAt: '2024-02-10T08:00:00.000Z',
@@ -25,8 +25,8 @@ export const initialUsers: User[] = [
     id: 'user-3',
     name: 'Beatriz Santos',
     username: '@bia.sustentavel',
-    email: 'beatriz@email.com',
-    password: '123456',
+    email: 'beatriz@seed.iclean.invalid',
+    passwordHash: null,
     bio: 'Defensora do consumo consciente e estilo de vida lixo zero.',
     avatarUrl: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Beatriz&backgroundColor=ffd5dc',
     joinedAt: '2024-01-20T14:00:00.000Z',

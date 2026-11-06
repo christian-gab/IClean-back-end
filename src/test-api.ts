@@ -1,151 +1,145 @@
+import assert from 'node:assert/strict'
+import { once } from 'node:events'
+import type { Server } from 'node:http'
 import { createApp } from './app.js'
-import { Server } from 'http'
 
-async function runTests() {
-  const app = createApp()
-  const port = 3099
-  const server: Server = app.listen(port)
-
-  const baseUrl = `http://localhost:${port}`
-
-  console.log('🧪 Iniciando testes de validação da API IClean-back...\n')
-
-  let data: any
-  try {
-    console.log('1. Testando GET /health...')
-    let res = await fetch(`${baseUrl}/health`)
-    data = await res.json()
-    console.log('   Status:', res.status, data)
-    if (res.status !== 200) throw new Error('Health check falhou')
-
-    console.log('\n2. Testando POST /api/v1/auth/login...')
-    res = await fetch(`${baseUrl}/api/v1/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: 'Maria Silva', username: 'maria.verde' }),
-    })
-    data = await res.json()
-    console.log('   Status:', res.status, 'User criado:', data.data?.user?.username)
-    if (res.status !== 200 || !data.data?.user) throw new Error('Login falhou')
-    const userId = data.data.user.id
-
-    console.log('\n3. Testando GET /api/v1/users/:id...')
-    res = await fetch(`${baseUrl}/api/v1/users/${userId}`)
-    data = await res.json()
-    console.log('   Status:', res.status, 'Nome:', data.data?.user?.name)
-
-    console.log('\n4. Testando PUT /api/v1/users/:id...')
-    res = await fetch(`${baseUrl}/api/v1/users/${userId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ bio: 'Bio atualizada com sucesso!' }),
-    })
-    data = await res.json()
-    console.log('   Status:', res.status, 'Nova bio:', data.data?.user?.bio)
-
-    console.log('\n5. Testando GET /api/v1/posts...')
-    res = await fetch(`${baseUrl}/api/v1/posts`)
-    data = await res.json()
-    console.log('   Status:', res.status, 'Total posts retornados:', data.results)
-
-    console.log('\n6. Testando GET /api/v1/posts?category=recycling...')
-    res = await fetch(`${baseUrl}/api/v1/posts?category=recycling`)
-    data = await res.json()
-    console.log('   Status:', res.status, 'Posts de reciclagem:', data.results)
-
-    console.log('\n7. Testando POST /api/v1/posts...')
-    res = await fetch(`${baseUrl}/api/v1/posts`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-user-id': userId,
-      },
-      body: JSON.stringify({
-        text: 'Acabei de plantar 3 mudas nativas no parque da cidade!',
-        category: 'preservation',
-      }),
-    })
-    data = await res.json()
-    console.log('   Status:', res.status, 'Novo post ID:', data.data?.post?.id, 'Conquistas desbloqueadas:', data.data?.unlockedAchievements)
-    const newPostId = data.data?.post?.id
-
-    console.log('\n8. Testando POST /api/v1/posts/:id/like...')
-    res = await fetch(`${baseUrl}/api/v1/posts/${newPostId}/like`, {
-      method: 'POST',
-      headers: { 'x-user-id': userId },
-    })
-    data = await res.json()
-    console.log('   Status:', res.status, 'Likes:', data.data?.likes, 'likedByMe:', data.data?.likedByMe)
-
-    console.log('\n9. Testando POST /api/v1/posts/:id/comments...')
-    res = await fetch(`${baseUrl}/api/v1/posts/${newPostId}/comments`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-user-id': userId,
-      },
-      body: JSON.stringify({ text: 'Incrível iniciativa, parabéns!' }),
-    })
-    data = await res.json()
-    console.log('   Status:', res.status, 'Comentário criado:', data.data?.comment?.text)
-
-    console.log('\n10. Testando GET /api/v1/actions...')
-    res = await fetch(`${baseUrl}/api/v1/actions`)
-    data = await res.json()
-    console.log('   Status:', res.status, 'Total ações disponíveis:', data.results)
-
-    console.log('\n11. Testando POST /api/v1/actions/action-1/complete...')
-    res = await fetch(`${baseUrl}/api/v1/actions/action-1/complete`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-user-id': userId,
-      },
-      body: JSON.stringify({
-        description: 'Foto do lixo reciclável separado.',
-      }),
-    })
-    data = await res.json()
-    console.log('   Status:', res.status, 'Mensagem:', data.message, 'Novos pontos:', data.data?.newTotalPoints)
-
-    console.log('\n12. Testando GET /api/v1/progress...')
-    res = await fetch(`${baseUrl}/api/v1/progress`, {
-      headers: { 'x-user-id': userId },
-    })
-    data = await res.json()
-    console.log('   Status:', res.status, 'Progresso do usuário:', {
-      totalPoints: data.data?.progress?.totalPoints,
-      actionsCompleted: data.data?.progress?.actionsCompleted,
-      postsCreated: data.data?.progress?.postsCreated,
-      currentLevel: data.data?.progress?.currentLevel?.name,
-      unlockedAchievements: data.data?.progress?.unlockedAchievements,
-    })
-
-    console.log('\n13. Testando GET /api/v1/levels e GET /api/v1/achievements...')
-    const levelsRes = await fetch(`${baseUrl}/api/v1/levels`)
-    const levelsData: any = await levelsRes.json()
-    const achRes = await fetch(`${baseUrl}/api/v1/achievements?userId=${userId}`)
-    const achData: any = await achRes.json()
-    console.log('   Status Levels:', levelsRes.status, 'Níveis:', levelsData.results)
-    console.log('   Status Achievements:', achRes.status, 'Conquistas:', achData.results)
-
-    console.log('\n14. Testando validação com payload inválido (POST /api/v1/posts com texto curto)...')
-    res = await fetch(`${baseUrl}/api/v1/posts`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: 'curto', category: 'invalid-cat' }),
-    })
-    data = await res.json()
-    console.log('   Status esperado (400):', res.status, 'Erros capturados:', data.errors)
-
-    console.log('\n===============================================')
-    console.log('✅ TODOS OS TESTES PASSARAM COM SUCESSO!')
-    console.log('===============================================')
-  } catch (err) {
-    console.error('❌ Erro no teste:', err)
-  } finally {
-    server.close()
+interface ApiResponse {
+  status?: string
+  message?: string
+  results?: number
+  errors?: unknown[]
+  data?: {
+    user?: { id: string; email?: string; password?: string; passwordHash?: string }
+    token?: string
+    post?: { id: string }
+    comment?: { text: string }
+    progress?: { totalPoints: number }
+    posts?: unknown[]
+    actions?: unknown[]
+    levels?: unknown[]
+    achievements?: unknown[]
   }
 }
 
-runTests()
+async function runTests(): Promise<void> {
+  const server: Server = createApp().listen(0)
+  await once(server, 'listening')
+
+  const address = server.address()
+  if (!address || typeof address === 'string') {
+    throw new Error('O servidor de teste não abriu uma porta TCP')
+  }
+
+  const baseUrl = `http://127.0.0.1:${address.port}/api/v1`
+  const email = `smoke-${Date.now()}@example.test`
+
+  async function request(
+    path: string,
+    init: RequestInit,
+    expectedStatus: number
+  ): Promise<ApiResponse> {
+    const response = await fetch(`${baseUrl}${path}`, init)
+    const body = await response.json() as ApiResponse
+    assert.equal(
+      response.status,
+      expectedStatus,
+      `${init.method ?? 'GET'} ${path}: ${JSON.stringify(body)}`
+    )
+    return body
+  }
+
+  try {
+    const registerBody = await request('/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Maria Silva', email, password: 'senha-forte-123' }),
+    }, 201)
+    assert.ok(registerBody.data?.user?.id)
+    assert.ok(registerBody.data?.token)
+    assert.equal(registerBody.data.user.password, undefined)
+    assert.equal(registerBody.data.user.passwordHash, undefined)
+
+    await request('/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Maria Silva', email: email.toUpperCase(), password: 'senha-forte-123' }),
+    }, 409)
+
+    const userId = registerBody.data.user.id
+    const token = registerBody.data.token
+    const authHeaders = { Authorization: `Bearer ${token}` }
+    const jsonAuthHeaders = { ...authHeaders, 'Content-Type': 'application/json' }
+
+    await request('/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: 'senha-forte-123' }),
+    }, 200)
+
+    await request('/auth/me', { headers: authHeaders }, 200)
+    const publicUser = await request(`/users/${userId}`, { headers: authHeaders }, 200)
+    assert.equal(publicUser.data?.user?.email, undefined)
+    await request(`/users/${userId}`, {
+      method: 'PUT',
+      headers: jsonAuthHeaders,
+      body: JSON.stringify({ bio: 'Bio atualizada com sucesso!' }),
+    }, 200)
+
+    const postBody = await request('/posts', {}, 200)
+    assert.ok(postBody.data?.posts)
+    await request('/posts?category=recycling', {}, 200)
+
+    const createdPost = await request('/posts', {
+      method: 'POST',
+      headers: jsonAuthHeaders,
+      body: JSON.stringify({
+        text: 'Acabei de plantar mudas nativas no parque da cidade!',
+        category: 'preservation',
+      }),
+    }, 201)
+    assert.ok(createdPost.data?.post?.id)
+
+    const postId = createdPost.data.post.id
+    await request(`/posts/${postId}/like`, {
+      method: 'POST',
+      headers: authHeaders,
+    }, 200)
+
+    const commentBody = await request(`/posts/${postId}/comments`, {
+      method: 'POST',
+      headers: jsonAuthHeaders,
+      body: JSON.stringify({ text: 'Incrível iniciativa, parabéns!' }),
+    }, 201)
+    assert.equal(commentBody.data?.comment?.text, 'Incrível iniciativa, parabéns!')
+
+    const actionsBody = await request('/actions', {}, 200)
+    assert.ok(actionsBody.data?.actions)
+    await request('/actions/action-1/complete', {
+      method: 'POST',
+      headers: jsonAuthHeaders,
+      body: JSON.stringify({ description: 'Materiais recicláveis separados.' }),
+    }, 200)
+
+    const progressBody = await request('/progress', { headers: authHeaders }, 200)
+    assert.ok(progressBody.data?.progress)
+    await request('/levels', {}, 200)
+    await request('/achievements', { headers: authHeaders }, 200)
+
+    const invalidPost = await request('/posts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: 'curto', category: 'invalid-cat' }),
+    }, 400)
+    assert.ok(invalidPost.errors?.length)
+
+    console.log('Todos os testes de integração da API passaram.')
+  } finally {
+    server.close()
+    await once(server, 'close')
+  }
+}
+
+runTests().catch(error => {
+  console.error('Falha nos testes de integração da API:', error)
+  process.exitCode = 1
+})
