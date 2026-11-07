@@ -4,6 +4,7 @@ export interface MySqlConfig {
   database: string
   user: string
   password: string
+  ssl?: string | { minVersion?: string; rejectUnauthorized?: boolean }
 }
 
 export type DatabaseConfig =
@@ -41,6 +42,11 @@ export function loadDatabaseConfig(env: NodeJS.ProcessEnv): DatabaseConfig {
     throw new Error('DB_PORT must be an integer between 1 and 65535')
   }
 
+  const ssl =
+    env.DB_SSL === 'true' || env.DB_HOST?.includes('tidbcloud.com')
+      ? { minVersion: 'TLSv1.2', rejectUnauthorized: true }
+      : undefined
+
   return {
     persistence,
     mysql: {
@@ -49,6 +55,7 @@ export function loadDatabaseConfig(env: NodeJS.ProcessEnv): DatabaseConfig {
       database: env.DB_NAME!.trim(),
       user: env.DB_USER!.trim(),
       password: env.DB_PASSWORD!,
+      ...(ssl ? { ssl } : {}),
     },
   }
 }

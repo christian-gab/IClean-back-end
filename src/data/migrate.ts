@@ -206,7 +206,7 @@ export async function runMigrations(pool: Pool): Promise<void> {
       pool,
       'users',
       'email_normalized',
-      'VARCHAR(254) GENERATED ALWAYS AS (LOWER(TRIM(email))) STORED'
+      'VARCHAR(254) GENERATED ALWAYS AS (LOWER(TRIM(email))) VIRTUAL'
     )
     await ensureIndex(
       pool,
