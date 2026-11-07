@@ -4,6 +4,8 @@ const CANDIDATE_MODELS = [
   'gemini-3.6-flash',
   'gemini-3.5-flash',
   'gemini-3.8-flash',
+  'gemini-2.0-flash',
+  'gemini-1.5-flash',
 ]
 
 export interface PhotoValidationResult {
@@ -104,15 +106,8 @@ export async function validatePhotoWithGemini(
       }
     } catch (err: any) {
       lastError = err
-      const isOverloaded =
-        err?.status === 503 ||
-        err?.status === 429 ||
-        err?.message?.includes('503') ||
-        err?.message?.includes('429') ||
-        err?.message?.includes('high demand')
-
-      if (isOverloaded && model !== modelsToTry[modelsToTry.length - 1]) {
-        console.warn(`[GeminiService] Modelo ${model} em alta demanda (${err?.status || '503'}). Tentando próximo modelo...`)
+      console.warn(`[GeminiService] Modelo ${model} falhou (${err?.status || err?.message || 'erro'}). Tentando próximo modelo...`)
+      if (model !== modelsToTry[modelsToTry.length - 1]) {
         continue
       }
       throw err
