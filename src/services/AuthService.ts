@@ -2,9 +2,11 @@ import { IUserRepository, IPostRepository } from '../repositories/interfaces.js'
 import { postRepository, userRepository } from '../repositories/index.js'
 import { PublicUser, StoredUser, User } from '../types/index.js'
 import { AppError } from '../errors/AppError.js'
-import { LoginInput, RegisterInput, UpdateProfileInput } from '../validations/schemas.js'
+import { LoginInput, RegisterInput, SendVerificationInput, VerifyEmailInput, UpdateProfileInput } from '../validations/schemas.js'
 import { createAuthToken } from '../utils/auth.js'
 import { hashPassword, verifyPassword } from '../utils/password.js'
+import { verificationStore } from './VerificationStore.js'
+import { generateCode, sendVerificationEmail } from './EmailService.js'
 
 export class AuthService {
   constructor(
@@ -25,6 +27,38 @@ export class AuthService {
     }
 
     return { user: this.sanitizeUser(user), token: createAuthToken(user.id) }
+  }
+
+  async sendVerification(data: SendVerificationInput): Promise<void> {
+    const cleanEmail = data.email.trim().toLowerCase()
+
+    // Rejeita se o email já está cadastrado
+    const existing = await this.userRepo.findByEmail(cleanEmail)
+    if (existing) {
+      throw new AppError('Este e-mail já está cadastrado', 409)
+    }
+
+    const code = generateCode()
+    verificationStore.set(cleanEmail, code)
+    await sendVerificationEmail(cleanEmail, code)
+  }
+
+  async verifyAndRegister(data: VerifyEmailInput): Promise<{ user: User; token: string }> {
+    const cleanEmail = data.email.trim().toLowerCase()
+
+    const result = verificationStore.verify(cleanEmail, data.code)
+    if (result === 'expired') {
+      throw new AppError('Código expirado. Solicite um novo código.', 400)
+    }
+    if (result === 'too_many_attempts') {
+      throw new AppError('Muitas tentativas incorretas. Solicite um novo código.', 429)
+    }
+    if (result === 'invalid') {
+      throw new AppError('Código incorreto. Tente novamente.', 400)
+    }
+
+    // Código válido — prossegue com o registro
+    return this.register({ name: data.name, email: data.email, password: data.password })
   }
 
   async register(data: RegisterInput): Promise<{ user: User; token: string }> {

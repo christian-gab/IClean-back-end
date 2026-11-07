@@ -28,6 +28,30 @@ export class AuthController {
     }
   }
 
+  async sendVerification(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      await authService.sendVerification(req.body)
+      res.status(200).json({
+        status: 'success',
+        message: 'Código de verificação enviado para o e-mail informado.',
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  async verifyAndRegister(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { user, token } = await authService.verifyAndRegister(req.body)
+      res.status(201).json({
+        status: 'success',
+        data: { user, token },
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+
   async me(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = getAuthenticatedUserId(req)

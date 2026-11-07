@@ -44,8 +44,23 @@ export const validatePhotoSchema = z.object({
   description: z.string().max(500, 'Descrição não pode exceder 500 caracteres').optional(),
 })
 
+export const sendVerificationSchema = z.object({
+  email: z.string().trim().max(254, 'O e-mail não pode exceder 254 caracteres').email('E-mail inválido'),
+  name: z.string().trim().min(2, 'O nome deve ter no mínimo 2 caracteres').max(150, 'O nome não pode exceder 150 caracteres'),
+  password: z.string().min(8, 'A senha deve ter no mínimo 8 caracteres').max(128, 'A senha não pode exceder 128 caracteres'),
+})
+
+export const verifyEmailSchema = z.object({
+  email: z.string().trim().max(254, 'O e-mail não pode exceder 254 caracteres').email('E-mail inválido'),
+  code: z.string().length(6, 'O código deve ter 6 dígitos').regex(/^\d{6}$/, 'O código deve conter apenas números'),
+  name: z.string().trim().min(2, 'O nome deve ter no mínimo 2 caracteres').max(150, 'O nome não pode exceder 150 caracteres'),
+  password: z.string().min(8, 'A senha deve ter no mínimo 8 caracteres').max(128, 'A senha não pode exceder 128 caracteres'),
+})
+
 export type LoginInput = z.infer<typeof loginSchema>
 export type RegisterInput = z.infer<typeof registerSchema>
+export type SendVerificationInput = z.infer<typeof sendVerificationSchema>
+export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>
 export type CreatePostInput = z.infer<typeof createPostSchema>
 export type CreateCommentInput = z.infer<typeof createCommentSchema>
