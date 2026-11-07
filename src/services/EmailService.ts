@@ -1,4 +1,3 @@
-import nodemailer from 'nodemailer'
 import { Resend } from 'resend'
 import { AppError } from '../errors/AppError.js'
 
@@ -32,63 +31,22 @@ export function generateCode(): string {
 }
 
 /**
- * Envia e-mail de verificação usando Resend (API HTTP - porta 443 sem bloqueio no Render)
- * com fallback para Nodemailer SMTP em desenvolvimento.
+ * Envia e-mail de verificação usando a API HTTPS do Resend.
  */
 export async function sendVerificationEmail(to: string, code: string): Promise<void> {
   const resendApiKey = process.env.RESEND_API_KEY?.trim()
 
-  // 1. Prioridade: Resend via API HTTP (perfeito para Render/Nuvem)
-  if (resendApiKey) {
-    try {
-      const resend = new Resend(resendApiKey)
-      const fromEmail = process.env.RESEND_FROM?.trim() || 'IClean <onboarding@resend.dev>'
-
-      const { data, error } = await resend.emails.send({
-        from: fromEmail,
-        to: [to],
-        subject: 'Seu código de verificação — IClean',
-        text: `Seu código de verificação é: ${code}\n\nEle expira em 10 minutos.`,
-        html: getHtmlTemplate(code),
-      })
-
-      if (error) {
-        console.error('[Resend Error]', error)
-        throw new AppError(`Falha ao enviar e-mail via Resend: ${error.message}`, 500)
-      }
-
-      console.log(`[EmailService] E-mail enviado com sucesso via Resend para ${to}. ID: ${data?.id}`)
-      return
-    } catch (err: unknown) {
-      if (err instanceof AppError) throw err
-      const msg = err instanceof Error ? err.message : String(err)
-      console.error('[Resend Exception]', err)
-      throw new AppError(`Falha ao enviar e-mail via Resend: ${msg}`, 500)
-    }
-  }
-
-  // 2. Fallback: Nodemailer SMTP (para ambiente local / desenvolvimento)
-  const user = process.env.SMTP_USER?.trim()
-  const pass = process.env.SMTP_PASS?.trim()
-  const from = process.env.SMTP_FROM?.trim() || user
-
-  const isSmtpConfigured = Boolean(
-    user &&
-    user !== 'seu_email@gmail.com' &&
-    pass &&
-    pass !== 'sua_senha_de_app_aqui'
-  )
-
-  if (!isSmtpConfigured) {
+  if (!resendApiKey) {
     if (process.env.NODE_ENV === 'production') {
       throw new AppError(
-        'Nenhum serviço de e-mail configurado em produção. Defina RESEND_API_KEY no painel do Render.',
+        'Serviço de e-mail não configurado em produção. Adicione a RESEND_API_KEY nas variáveis de ambiente.',
         500
       )
     }
 
+    // Modo dev sem API Key: exibe no console para facilitar testes locais
     console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`)
-    console.log(`📧 [EmailService - DEV MODE (Sem credenciais)]`)
+    console.log(`📧 [EmailService - DEV MODE (Sem RESEND_API_KEY)]`)
     console.log(`   Para: ${to}`)
     console.log(`   Código: ${code}`)
     console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`)
@@ -96,32 +54,27 @@ export async function sendVerificationEmail(to: string, code: string): Promise<v
   }
 
   try {
-    const transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 465,
-      secure: true,
-      auth: { user, pass },
-      connectionTimeout: 8000,
-      socketTimeout: 10000,
-    })
+    const resend = new Resend(resendApiKey)
+    const fromEmail = process.env.RESEND_FROM?.trim() || 'IClean <onboarding@resend.dev>'
 
-    const info = await transporter.sendMail({
-      from: `"IClean" <${from}>`,
-      to,
+    const { data, error } = await resend.emails.send({
+      from: fromEmail,
+      to: [to],
       subject: 'Seu código de verificação — IClean',
-      text: `Seu código de verificação é: ${code}\n\nEle expira em 10 minutos.`,
+      text: `Seu código de verificação é: ${code}\n\nEle expira em 10 minutos. Se você não solicitou isso, ignore este e-mail.`,
       html: getHtmlTemplate(code),
     })
 
-    console.log(`[EmailService] E-mail enviado com sucesso via SMTP para ${to}. ID: ${info.messageId}`)
-  } catch (err: unknown) {
-    console.error('[EmailService SMTP ERROR]', err)
-    const message = err instanceof Error ? err.message : String(err)
-
-    if (message.includes('535') || message.includes('BadCredentials') || message.includes('Invalid login')) {
-      throw new AppError('Falha ao enviar e-mail: credenciais SMTP inválidas.', 500)
+    if (error) {
+      console.error('[Resend Error]', error)
+      throw new AppError(`Falha ao enviar e-mail via Resend: ${error.message}`, 500)
     }
 
+    console.log(`[EmailService] E-mail de verificação enviado com sucesso para ${to}. ID: ${data?.id}`)
+  } catch (err: unknown) {
+    if (err instanceof AppError) throw err
+    const message = err instanceof Error ? err.message : String(err)
+    console.error('[Resend Exception]', err)
     throw new AppError(`Falha ao enviar e-mail: ${message}`, 500)
   }
 }
