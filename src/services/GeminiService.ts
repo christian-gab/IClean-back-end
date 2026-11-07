@@ -1,7 +1,10 @@
 import { GoogleGenAI } from '@google/genai'
 
-// gemini-3.8-flash — modelo gratuito atual recomendado pelo Google
-const MODEL_NAME = 'gemini-3.8-flash'
+const CANDIDATE_MODELS = [
+  'gemini-3.6-flash',
+  'gemini-3.5-flash',
+  'gemini-3.8-flash',
+]
 
 export interface PhotoValidationResult {
   approved: boolean
@@ -55,38 +58,66 @@ export async function validatePhotoWithGemini(
 
   const prompt = buildPrompt(actionTitle, actionDescription, userDescription)
 
-  const response = await ai.models.generateContent({
-    model: MODEL_NAME,
-    contents: [
-      {
-        parts: [
-          { text: prompt },
+  const preferredModel = process.env.GEMINI_MODEL
+  const modelsToTry = [
+    preferredModel,
+    ...CANDIDATE_MODELS.filter(m => m !== preferredModel),
+  ].filter(Boolean) as string[]
+
+  let lastError: unknown = null
+
+  for (const model of modelsToTry) {
+    try {
+      const response = await ai.models.generateContent({
+        model,
+        contents: [
           {
-            inlineData: {
-              mimeType,
-              data: base64Data,
-            },
+            parts: [
+              { text: prompt },
+              {
+                inlineData: {
+                  mimeType,
+                  data: base64Data,
+                },
+              },
+            ],
           },
         ],
-      },
-    ],
-  })
+      })
 
-  const text = response.text?.trim() ?? ''
+      const text = response.text?.trim() ?? ''
 
-  // Extrai JSON mesmo que venha com backticks de markdown
-  const jsonMatch = text.match(/\{[\s\S]*\}/)
-  if (!jsonMatch) {
-    throw new Error(`Resposta do Gemini não contém JSON válido. Resposta: ${text.slice(0, 200)}`)
+      // Extrai JSON mesmo que venha com backticks de markdown
+      const jsonMatch = text.match(/\{[\s\S]*\}/)
+      if (!jsonMatch) {
+        throw new Error(`Resposta do Gemini não contém JSON válido. Resposta: ${text.slice(0, 200)}`)
+      }
+
+      const parsed = JSON.parse(jsonMatch[0]) as PhotoValidationResult
+
+      return {
+        approved: Boolean(parsed.approved),
+        confidence: typeof parsed.confidence === 'number' ? Math.max(0, Math.min(1, parsed.confidence)) : 0.5,
+        reasoning: parsed.reasoning ?? 'Análise concluída.',
+        detectedElements: Array.isArray(parsed.detectedElements) ? parsed.detectedElements : [],
+        warnings: Array.isArray(parsed.warnings) ? parsed.warnings : [],
+      }
+    } catch (err: any) {
+      lastError = err
+      const isOverloaded =
+        err?.status === 503 ||
+        err?.status === 429 ||
+        err?.message?.includes('503') ||
+        err?.message?.includes('429') ||
+        err?.message?.includes('high demand')
+
+      if (isOverloaded && model !== modelsToTry[modelsToTry.length - 1]) {
+        console.warn(`[GeminiService] Modelo ${model} em alta demanda (${err?.status || '503'}). Tentando próximo modelo...`)
+        continue
+      }
+      throw err
+    }
   }
 
-  const parsed = JSON.parse(jsonMatch[0]) as PhotoValidationResult
-
-  return {
-    approved: Boolean(parsed.approved),
-    confidence: typeof parsed.confidence === 'number' ? Math.max(0, Math.min(1, parsed.confidence)) : 0.5,
-    reasoning: parsed.reasoning ?? 'Análise concluída.',
-    detectedElements: Array.isArray(parsed.detectedElements) ? parsed.detectedElements : [],
-    warnings: Array.isArray(parsed.warnings) ? parsed.warnings : [],
-  }
+  throw lastError
 }

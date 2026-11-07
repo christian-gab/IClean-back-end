@@ -4,12 +4,6 @@ import { config } from '../config/env.js'
 
 const TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60
 
-interface AuthTokenPayload {
-  sub: string
-  iat: number
-  exp: number
-}
-
 function sign(value: string): Buffer {
   return createHmac('sha256', config.authSecret).update(value).digest()
 }

@@ -1,3 +1,8 @@
+import dns from 'node:dns'
+try {
+  dns.setDefaultResultOrder?.('ipv4first')
+} catch {}
+
 import { createApp } from './app.js'
 import { config } from './config/env.js'
 import { checkDatabaseConnection, closeDatabasePool } from './repositories/index.js'
@@ -11,7 +16,7 @@ async function startServer(): Promise<void> {
     console.log(`🚀 IClean Backend API rodando com sucesso!`)
     console.log(`📡 URL: http://localhost:${config.port}`)
     console.log(`📑 Prefixo da API: ${config.apiPrefix}`)
-    console.log(`🌍 Ambiente: ${config.nodeEnv}`)
+    console.log(`🌐 Ambiente: ${config.nodeEnv}`)
     console.log(`===============================================`)
   })
 
