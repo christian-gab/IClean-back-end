@@ -29,7 +29,7 @@ export function errorHandler(
 
   res.status(500).json({
     status: 'error',
-    message: 'Ocorreu um erro interno no servidor',
+    message: err instanceof AppError ? err.message : (err.message || 'Ocorreu um erro interno no servidor'),
     ...(config.nodeEnv === 'development' ? { stack: err.stack } : {}),
   })
 }
