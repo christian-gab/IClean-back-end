@@ -90,19 +90,19 @@ export async function sendVerificationEmail(to: string, code: string): Promise<v
     })
     console.log(`[EmailService] E-mail de verificação enviado com sucesso para ${to}. MessageId: ${info.messageId}`)
   } catch (err: unknown) {
+    console.error('[EmailService ERROR]', err)
     const message = err instanceof Error ? err.message : String(err)
 
     // Erro de autenticação SMTP (senha de app inválida / não configurada)
     if (message.includes('535') || message.includes('BadCredentials') || message.includes('Invalid login')) {
       throw new AppError(
-        'Falha ao enviar o e-mail de verificação: credenciais SMTP inválidas. ' +
-        'Configure SMTP_USER e SMTP_PASS com uma senha de app do Gmail no .env.',
+        'Falha ao enviar o e-mail de verificação: credenciais SMTP inválidas.',
         500
       )
     }
 
     // Outros erros SMTP
-    throw new AppError(`Falha ao enviar o e-mail de verificação: ${message}`, 500)
+    throw new AppError(`Falha ao enviar e-mail: ${message}`, 500)
   }
 }
 
