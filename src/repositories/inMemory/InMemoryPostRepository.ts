@@ -19,6 +19,12 @@ export class InMemoryPostRepository implements IPostRepository {
     return post ? { ...post, comments: [...post.comments] } : null
   }
 
+  async findByAuthor(authorId: string): Promise<Post[]> {
+    return this.posts
+      .filter(p => p.authorId === authorId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+  }
+
   async create(data: Omit<Post, 'id' | 'createdAt' | 'likes' | 'likedByMe' | 'likedByUsers' | 'comments'>): Promise<Post> {
     const newPost: Post = {
       ...data,

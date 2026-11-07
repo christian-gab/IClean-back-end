@@ -124,6 +124,20 @@ export class MySqlPostRepository implements IPostRepository {
     return (await this.loadPosts(rows))[0] ?? null
   }
 
+  async findByAuthor(authorId: string): Promise<Post[]> {
+    const [rows] = await this.pool.query<PostRow[]>(
+      `SELECT p.id, p.author_id, u.name AS author_name,
+              u.avatar_url AS author_avatar_url, p.text, p.image_url,
+              p.category, p.likes_count, p.created_at
+       FROM posts p
+       JOIN users u ON u.id = p.author_id
+       WHERE p.author_id = ?
+       ORDER BY p.created_at DESC`,
+      [authorId]
+    )
+    return this.loadPosts(rows)
+  }
+
   async create(
     data: Omit<Post, 'id' | 'createdAt' | 'likes' | 'likedByMe' | 'likedByUsers' | 'comments'>
   ): Promise<Post> {

@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express'
 import { authService } from '../services/AuthService.js'
 import { getAuthenticatedUserId } from '../utils/auth.js'
 import { AppError } from '../errors/AppError.js'
+import { postRepository } from '../repositories/index.js'
 
 export class UserController {
   async getUser(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -11,6 +12,19 @@ export class UserController {
       res.status(200).json({
         status: 'success',
         data: { user },
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  async getUserPosts(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const id = String(req.params.id)
+      const posts = await postRepository.findByAuthor(id)
+      res.status(200).json({
+        status: 'success',
+        data: { posts },
       })
     } catch (error) {
       next(error)

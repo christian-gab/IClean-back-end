@@ -12,6 +12,7 @@ export interface IUserRepository {
 export interface IPostRepository {
   findAll(category?: string): Promise<Post[]>
   findById(id: string): Promise<Post | null>
+  findByAuthor(authorId: string): Promise<Post[]>
   create(post: Omit<Post, 'id' | 'createdAt' | 'likes' | 'likedByMe' | 'likedByUsers' | 'comments'>): Promise<Post>
   update(id: string, updates: Partial<Post>): Promise<Post | null>
   toggleLike(postId: string, userId: string): Promise<{ post: Post; liked: boolean }>
