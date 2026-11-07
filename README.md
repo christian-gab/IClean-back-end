@@ -72,6 +72,34 @@ banco ou as migrations estiverem indisponíveis.
 Nunca use o prefixo `VITE_` para chaves secretas; variáveis com esse prefixo
 são incorporadas ao JavaScript enviado ao navegador.
 
+### E-mails de verificação com EmailJS
+
+O backend envia os códigos usando a API HTTPS do EmailJS. No painel do EmailJS:
+
+1. Conecte o serviço de e-mail que enviará as mensagens.
+2. Crie um template com `To Email` igual a `{{to_email}}`, assunto
+   `Seu código de verificação — IClean` e corpo contendo `{{verification_code}}`.
+   Informe no corpo que o código expira em 10 minutos.
+3. Copie o Service ID e o Template ID; em **Account**, obtenha a Public Key e
+   crie/consulte a Private Key.
+
+Configure estas variáveis no ambiente do backend (por exemplo, em
+**Environment** no serviço da Render):
+
+```text
+EMAILJS_SERVICE_ID
+EMAILJS_TEMPLATE_ID
+EMAILJS_PUBLIC_KEY
+EMAILJS_PRIVATE_KEY
+```
+
+Mantenha a Private Key somente no backend e não use o prefixo `VITE_`. Em
+desenvolvimento, se todas as variáveis estiverem ausentes, o código aparece no
+console local; em produção, a API retorna erro explícito se alguma variável
+estiver faltando. A conta gratuita do EmailJS tem limite de 200 solicitações
+mensais e é recomendada pelo provedor apenas para uso pessoal/baixo volume;
+revise os limites e a adequação antes de depender dela para produção.
+
 ### Persistência MySQL
 
 Crie um banco e um usuário MySQL dedicado à API; não use `root` na aplicação.
