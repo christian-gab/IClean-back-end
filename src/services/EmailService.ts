@@ -21,11 +21,16 @@ function createTransporter() {
   if (!isConfigured) return null
 
   return nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true, // SSL direto na porta 465 (muito mais confiavel em nuvem que porta 587)
     auth: {
       user,
       pass,
     },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
   })
 }
 
@@ -40,6 +45,12 @@ export async function sendVerificationEmail(to: string, code: string): Promise<v
   const transporter = createTransporter()
 
   if (!transporter || !isConfigured) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new AppError(
+        'Serviço de e-mail não configurado no servidor de produção (verifique SMTP_USER e SMTP_PASS).',
+        500
+      )
+    }
     // Modo dev: exibe o código no console em vez de enviar email
     console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`)
     console.log(`📧 [EmailService - DEV MODE (Sem credenciais reais)]`)
@@ -50,7 +61,7 @@ export async function sendVerificationEmail(to: string, code: string): Promise<v
   }
 
   try {
-    await transporter.sendMail({
+    const info = await transporter.sendMail({
       from: `"IClean" <${from}>`,
       to,
       subject: 'Seu código de verificação — IClean',
@@ -77,6 +88,7 @@ export async function sendVerificationEmail(to: string, code: string): Promise<v
         </div>
       `,
     })
+    console.log(`[EmailService] E-mail de verificação enviado com sucesso para ${to}. MessageId: ${info.messageId}`)
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err)
 
