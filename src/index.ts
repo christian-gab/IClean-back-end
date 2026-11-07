@@ -22,12 +22,12 @@ async function startServer(): Promise<void> {
 
   const shutdown = (signal: string) => {
     console.log(`Encerrando API após ${signal}`)
-    server.close(error => {
+    server.close((error?: Error) => {
       if (error) {
         console.error('Falha ao encerrar o servidor HTTP:', error)
         process.exitCode = 1
       }
-      void closeDatabasePool().catch(databaseError => {
+      void closeDatabasePool().catch((databaseError: unknown) => {
         console.error('Falha ao fechar o pool MySQL:', databaseError)
         process.exitCode = 1
       })
@@ -36,9 +36,9 @@ async function startServer(): Promise<void> {
 
   process.once('SIGINT', () => shutdown('SIGINT'))
   process.once('SIGTERM', () => shutdown('SIGTERM'))
-  server.once('error', error => {
+  server.once('error', (error: Error) => {
     console.error('Falha ao iniciar o servidor HTTP:', error)
-    void closeDatabasePool().catch(databaseError => {
+    void closeDatabasePool().catch((databaseError: unknown) => {
       console.error('Falha ao fechar o pool MySQL:', databaseError)
       process.exitCode = 1
     })
