@@ -63,20 +63,55 @@ export function buildVerificationEmailHtml(code: string): string {
 </html>`
 }
 
+interface EmailJsConfig {
+  serviceId: string
+  templateId: string
+  publicKey: string
+  privateKey: string
+}
+
+async function sendViaEmailJs(config: EmailJsConfig, to: string, code: string): Promise<void> {
+  const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      service_id: config.serviceId,
+      template_id: config.templateId,
+      user_id: config.publicKey,
+      accessToken: config.privateKey,
+      template_params: {
+        to_email: to,
+        verification_code: code,
+      },
+    }),
+  })
+
+  if (!response.ok) {
+    const details = await response.text()
+    throw new AppError(
+      `Falha ao enviar e-mail via EmailJS: ${details || response.statusText}`,
+      500
+    )
+  }
+
+  console.log(`[EmailService] E-mail de verificação enviado com sucesso para ${to} via EmailJS.`)
+}
+
 /**
  * Envia e-mail de verificação.
- * Prioriza envio via SMTP/Gmail (Nodemailer) para garantir entrega direta na Caixa de Entrada.
- * Mantém compatibilidade com EmailJS como fallback.
+ * Em ambientes como Render Free onde portas SMTP (25, 465, 587) são bloqueadas pelo firewall,
+ * utiliza envio imediato via HTTPS (EmailJS) para evitar timeouts.
+ * Em outros ambientes ou com SMTP_FORCE=true, utiliza envio prioritário via SMTP com timeout rápido e fallback.
  */
 export async function sendVerificationEmail(to: string, code: string): Promise<void> {
   const smtpUser = process.env.SMTP_USER?.trim() || process.env.GMAIL_USER?.trim()
   const smtpPass = process.env.SMTP_PASS?.trim() || process.env.GMAIL_APP_PASSWORD?.trim()
 
   const emailJsConfig = {
-    serviceId: process.env.EMAILJS_SERVICE_ID?.trim(),
-    templateId: process.env.EMAILJS_TEMPLATE_ID?.trim(),
-    publicKey: process.env.EMAILJS_PUBLIC_KEY?.trim(),
-    privateKey: process.env.EMAILJS_PRIVATE_KEY?.trim(),
+    serviceId: process.env.EMAILJS_SERVICE_ID?.trim() || '',
+    templateId: process.env.EMAILJS_TEMPLATE_ID?.trim() || '',
+    publicKey: process.env.EMAILJS_PUBLIC_KEY?.trim() || '',
+    privateKey: process.env.EMAILJS_PRIVATE_KEY?.trim() || '',
   }
 
   const hasSmtp = Boolean(smtpUser && smtpPass)
@@ -103,7 +138,15 @@ export async function sendVerificationEmail(to: string, code: string): Promise<v
     )
   }
 
-  // 1. Envio prioritário via SMTP (Gmail / Nodemailer)
+  // No Render Free, as portas SMTP (25, 465, 587) são bloqueadas na rede da hospedagem.
+  // Se estiver no Render e tiver EmailJS disponível, envia diretamente via HTTPS para resposta instantânea (< 2s).
+  const isRenderFree = Boolean(process.env.RENDER) && process.env.SMTP_FORCE !== 'true'
+  if (isRenderFree && hasEmailJs) {
+    console.log('[EmailService] Ambiente Render detectado. Enviando via EmailJS (HTTPS) para evitar bloqueio de portas SMTP.')
+    return sendViaEmailJs(emailJsConfig, to, code)
+  }
+
+  // 1. Envio via SMTP (Gmail / Nodemailer)
   if (hasSmtp) {
     try {
       const port = Number(process.env.SMTP_PORT || 465)
@@ -112,6 +155,9 @@ export async function sendVerificationEmail(to: string, code: string): Promise<v
         host: process.env.SMTP_HOST?.trim() || 'smtp.gmail.com',
         port,
         secure,
+        connectionTimeout: 4000,
+        greetingTimeout: 4000,
+        socketTimeout: 5000,
         auth: {
           user: smtpUser,
           pass: smtpPass,
@@ -135,40 +181,17 @@ export async function sendVerificationEmail(to: string, code: string): Promise<v
       if (err instanceof AppError) throw err
       const message = err instanceof Error ? err.message : String(err)
       console.error('[SMTP Exception]', err)
+
+      // Se SMTP falhar (por exemplo, bloqueio de porta pela nuvem), realiza fallback automático para EmailJS
+      if (hasEmailJs) {
+        console.warn('[EmailService] SMTP falhou ou foi bloqueado pela hospedagem. Realizando fallback imediato para EmailJS via HTTPS...')
+        return sendViaEmailJs(emailJsConfig, to, code)
+      }
+
       throw new AppError(`Falha ao enviar e-mail via SMTP: ${message}`, 500)
     }
   }
 
-  // 2. Fallback via EmailJS
-  try {
-    const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        service_id: emailJsConfig.serviceId,
-        template_id: emailJsConfig.templateId,
-        user_id: emailJsConfig.publicKey,
-        accessToken: emailJsConfig.privateKey,
-        template_params: {
-          to_email: to,
-          verification_code: code,
-        },
-      }),
-    })
-
-    if (!response.ok) {
-      const details = await response.text()
-      throw new AppError(
-        `Falha ao enviar e-mail via EmailJS: ${details || response.statusText}`,
-        500
-      )
-    }
-
-    console.log(`[EmailService] E-mail de verificação enviado com sucesso para ${to}.`)
-  } catch (err: unknown) {
-    if (err instanceof AppError) throw err
-    const message = err instanceof Error ? err.message : String(err)
-    console.error('[EmailJS Exception]', err)
-    throw new AppError(`Falha ao enviar e-mail: ${message}`, 500)
-  }
+  // 2. Envio direto via EmailJS
+  return sendViaEmailJs(emailJsConfig, to, code)
 }

@@ -11,8 +11,10 @@ test('sends verification email using SMTP when configured', async () => {
     SMTP_PORT: process.env.SMTP_PORT,
     SMTP_FROM: process.env.SMTP_FROM,
     NODE_ENV: process.env.NODE_ENV,
+    RENDER: process.env.RENDER,
   }
 
+  delete process.env.RENDER
   process.env.SMTP_USER = 'icleaninterprise@gmail.com'
   process.env.SMTP_PASS = 'abcd efgh ijkl mnop'
   process.env.NODE_ENV = 'production'
@@ -45,12 +47,23 @@ test('sends verification email using SMTP when configured', async () => {
   }
 })
 
-test('reports SMTP delivery errors', async () => {
+test('reports SMTP delivery errors when no fallback is configured', async () => {
   const env = {
     SMTP_USER: process.env.SMTP_USER,
     SMTP_PASS: process.env.SMTP_PASS,
+    EMAILJS_SERVICE_ID: process.env.EMAILJS_SERVICE_ID,
+    EMAILJS_TEMPLATE_ID: process.env.EMAILJS_TEMPLATE_ID,
+    EMAILJS_PUBLIC_KEY: process.env.EMAILJS_PUBLIC_KEY,
+    EMAILJS_PRIVATE_KEY: process.env.EMAILJS_PRIVATE_KEY,
     NODE_ENV: process.env.NODE_ENV,
+    RENDER: process.env.RENDER,
   }
+
+  delete process.env.RENDER
+  delete process.env.EMAILJS_SERVICE_ID
+  delete process.env.EMAILJS_TEMPLATE_ID
+  delete process.env.EMAILJS_PUBLIC_KEY
+  delete process.env.EMAILJS_PRIVATE_KEY
 
   process.env.SMTP_USER = 'icleaninterprise@gmail.com'
   process.env.SMTP_PASS = 'invalid_pass'
@@ -78,6 +91,60 @@ test('reports SMTP delivery errors', async () => {
   }
 })
 
+test('falls back to EmailJS if SMTP connection fails and EmailJS is configured', async () => {
+  const env = {
+    SMTP_USER: process.env.SMTP_USER,
+    SMTP_PASS: process.env.SMTP_PASS,
+    EMAILJS_SERVICE_ID: process.env.EMAILJS_SERVICE_ID,
+    EMAILJS_TEMPLATE_ID: process.env.EMAILJS_TEMPLATE_ID,
+    EMAILJS_PUBLIC_KEY: process.env.EMAILJS_PUBLIC_KEY,
+    EMAILJS_PRIVATE_KEY: process.env.EMAILJS_PRIVATE_KEY,
+    NODE_ENV: process.env.NODE_ENV,
+    RENDER: process.env.RENDER,
+  }
+
+  delete process.env.RENDER
+  process.env.SMTP_USER = 'icleaninterprise@gmail.com'
+  process.env.SMTP_PASS = 'test_pass'
+  process.env.EMAILJS_SERVICE_ID = 'service_fb'
+  process.env.EMAILJS_TEMPLATE_ID = 'template_fb'
+  process.env.EMAILJS_PUBLIC_KEY = 'pub_fb'
+  process.env.EMAILJS_PRIVATE_KEY = 'priv_fb'
+  process.env.NODE_ENV = 'production'
+
+  const createTransportMock = mock.method(nodemailer, 'createTransport', () => {
+    return {
+      sendMail: async () => {
+        throw new Error('ETIMEDOUT: Connection timed out')
+      },
+    } as unknown as nodemailer.Transporter
+  })
+
+  const request = { url: '', body: '' }
+  const fetchMock = mock.method(
+    globalThis,
+    'fetch',
+    async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+      request.url = String(input)
+      request.body = String(init?.body)
+      return new Response('OK', { status: 200 })
+    }
+  )
+
+  try {
+    await sendVerificationEmail('person@example.com', '888999')
+    assert.equal(request.url, 'https://api.emailjs.com/api/v1.0/email/send')
+    assert.match(request.body, /888999/)
+  } finally {
+    createTransportMock.mock.restore()
+    fetchMock.mock.restore()
+    for (const [key, value] of Object.entries(env)) {
+      if (value === undefined) delete process.env[key]
+      else process.env[key] = value
+    }
+  }
+})
+
 test('sends verification email using the configured EmailJS template', async () => {
   const env = {
     SMTP_USER: process.env.SMTP_USER,
@@ -87,8 +154,10 @@ test('sends verification email using the configured EmailJS template', async () 
     EMAILJS_PUBLIC_KEY: process.env.EMAILJS_PUBLIC_KEY,
     EMAILJS_PRIVATE_KEY: process.env.EMAILJS_PRIVATE_KEY,
     NODE_ENV: process.env.NODE_ENV,
+    RENDER: process.env.RENDER,
   }
 
+  delete process.env.RENDER
   delete process.env.SMTP_USER
   delete process.env.SMTP_PASS
   process.env.EMAILJS_SERVICE_ID = 'service_test'
@@ -144,8 +213,10 @@ test('reports EmailJS delivery errors', async () => {
     EMAILJS_PUBLIC_KEY: process.env.EMAILJS_PUBLIC_KEY,
     EMAILJS_PRIVATE_KEY: process.env.EMAILJS_PRIVATE_KEY,
     NODE_ENV: process.env.NODE_ENV,
+    RENDER: process.env.RENDER,
   }
 
+  delete process.env.RENDER
   delete process.env.SMTP_USER
   delete process.env.SMTP_PASS
   process.env.EMAILJS_SERVICE_ID = 'service_test'
@@ -183,8 +254,10 @@ test('requires EmailJS configuration in production', async () => {
     EMAILJS_PUBLIC_KEY: process.env.EMAILJS_PUBLIC_KEY,
     EMAILJS_PRIVATE_KEY: process.env.EMAILJS_PRIVATE_KEY,
     NODE_ENV: process.env.NODE_ENV,
+    RENDER: process.env.RENDER,
   }
 
+  delete process.env.RENDER
   delete process.env.SMTP_USER
   delete process.env.SMTP_PASS
   delete process.env.EMAILJS_SERVICE_ID
